@@ -9,6 +9,6 @@ public record PersonOrderResponseDto (
     double personMealPriceCommission,
     double commonMealsPricePerPerson,
     double commonMealPriceCommission,
-    double TotalCommissions,
+    double totalCommissions,
     double total
 ) {}
