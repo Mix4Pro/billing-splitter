@@ -10,6 +10,8 @@ import uz.billsplitter.demo.dto.response.PersonOrderResponseDto;
 import uz.billsplitter.demo.repository.MenuRepository;
 import uz.billsplitter.demo.service.BillService;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 
 @Service
@@ -50,24 +52,44 @@ public class BillServiceImpl implements BillService{
         return totalAmount;
     }
 
+    private double roundTheAmount (double amount ) {
+        return new BigDecimal(amount).setScale(2,RoundingMode.HALF_UP).doubleValue();
+    }
+
     @Override
     public OrderResponseDto split(OrderRequestDto orderRequestDto) {
+        // Total amounts
         double totalAmount = 0;
         double totalCommissions = 0;
+        double commonMealsPricePerPersonCommission = 0;
 
+        // Each person amounts
         double amountPerPerson = 0;
         double amountPerPersonCommission = 0;
+        double amountPerPersonOfCommonMeals = 0;
+        double amountPerPersonOfCommonMealsWithCommission = 0;
 
+        // Common meals ordered amounts
         double commonMealsOrderedAmount = 0;
         double commonMealsOrderedAmountCommission = 0;
 
         ArrayList<PersonOrderResponseDto> personOrderResponseDtoList = new ArrayList<>();
 
+        int peopleNumber = orderRequestDto.listOfPeople().size();
+
+        commonMealsOrderedAmount = calculateAmountOfCommonMealsOrdered(orderRequestDto.commonMeals(),menuRepository);
+        commonMealsOrderedAmountCommission = commonMealsOrderedAmount * 0.2;
+        totalCommissions += commonMealsOrderedAmountCommission;
+
+        totalAmount += commonMealsOrderedAmount + commonMealsOrderedAmountCommission;
+
         for(PersonOrderRequestDto person_i : orderRequestDto.listOfPeople()) {
-            amountPerPerson = calculateAmountPerPerson(person_i,menuRepository);
-            amountPerPersonCommission = amountPerPerson * 0.2;
+            amountPerPerson = calculateAmountPerPerson(person_i,menuRepository); // With no commission
+            amountPerPersonCommission = amountPerPerson * 0.2; // Commission only
             totalCommissions += amountPerPersonCommission;
             if(amountPerPerson > 0) {
+                amountPerPersonOfCommonMeals = commonMealsOrderedAmount / peopleNumber;
+                amountPerPersonOfCommonMealsWithCommission = commonMealsOrderedAmountCommission / peopleNumber;
                 totalAmount += amountPerPerson + amountPerPersonCommission;
 
                 personOrderResponseDtoList.add(
@@ -76,25 +98,26 @@ public class BillServiceImpl implements BillService{
                         person_i.meals(),
                         amountPerPerson,
                         amountPerPersonCommission,
-                        amountPerPerson + amountPerPersonCommission
+                        roundTheAmount(amountPerPersonOfCommonMeals),
+                        roundTheAmount(amountPerPersonOfCommonMealsWithCommission),
+                        roundTheAmount(amountPerPersonCommission + amountPerPersonOfCommonMealsWithCommission),
+                        roundTheAmount((amountPerPerson + amountPerPersonCommission) +
+                            (amountPerPersonOfCommonMealsWithCommission + amountPerPersonOfCommonMeals))
                     )
                 );
             }
         }
 
-        commonMealsOrderedAmount = calculateAmountOfCommonMealsOrdered(orderRequestDto.commonMeals(),menuRepository);
-        commonMealsOrderedAmountCommission = commonMealsOrderedAmount * 0.2;
-        totalCommissions += commonMealsOrderedAmountCommission;
 
-        totalAmount += commonMealsOrderedAmount + commonMealsOrderedAmountCommission;
 
         return new OrderResponseDto(
             personOrderResponseDtoList,
             orderRequestDto.commonMeals(),
-            commonMealsOrderedAmountCommission,
-            totalAmount - totalCommissions,
-            totalCommissions,
-            totalAmount
+            roundTheAmount(commonMealsOrderedAmount),
+            roundTheAmount(commonMealsOrderedAmountCommission),
+            roundTheAmount(totalAmount - totalCommissions),
+            roundTheAmount(totalCommissions),
+            roundTheAmount(totalAmount)
         );
     }
 }
