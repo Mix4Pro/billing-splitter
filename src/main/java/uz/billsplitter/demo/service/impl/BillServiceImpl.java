@@ -61,7 +61,6 @@ public class BillServiceImpl implements BillService{
         // Total amounts
         double totalAmount = 0;
         double totalCommissions = 0;
-        double commonMealsPricePerPersonCommission = 0;
 
         // Each person amounts
         double amountPerPerson = 0;
@@ -85,11 +84,13 @@ public class BillServiceImpl implements BillService{
 
         for(PersonOrderRequestDto person_i : orderRequestDto.listOfPeople()) {
             amountPerPerson = calculateAmountPerPerson(person_i,menuRepository); // With no commission
-            amountPerPersonCommission = amountPerPerson * 0.2; // Commission only
-            totalCommissions += amountPerPersonCommission;
             if(amountPerPerson > 0) {
-                amountPerPersonOfCommonMeals = commonMealsOrderedAmount / peopleNumber;
-                amountPerPersonOfCommonMealsWithCommission = commonMealsOrderedAmountCommission / peopleNumber;
+
+                amountPerPersonCommission = amountPerPerson * 0.2; // Commission only
+                amountPerPersonOfCommonMeals = commonMealsOrderedAmount / peopleNumber; // No commission price for common meal per person
+                amountPerPersonOfCommonMealsWithCommission = commonMealsOrderedAmountCommission / peopleNumber; // Commission only for common meal per person
+
+                totalCommissions += amountPerPersonCommission;
                 totalAmount += amountPerPerson + amountPerPersonCommission;
 
                 personOrderResponseDtoList.add(
